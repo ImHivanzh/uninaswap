@@ -1,48 +1,160 @@
 package dao;
 
-import model.Annuncio;
 import db.dbConnection;
 import exception.DatabaseException;
+import model.*;
+import model.enums.Categoria;
 import model.enums.TipoAnnuncio;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AnnuncioDAO {
 
-  public AnnuncioDAO() {}
+  private Connection con;
+
+  public AnnuncioDAO() {
+    try {
+      // Tentativo di connessione gestendo l'eccezione personalizzata DatabaseException
+      this.con = dbConnection.getInstance().getConnection();
+    } catch (DatabaseException e) {
+      System.err.println("Errore di connessione al database: " + e.getMessage());
+      // In caso di errore la connessione resta null
+    }
+  }
 
   /**
    * Inserisce un nuovo annuncio nel database.
-   * @param annuncio L'oggetto Annuncio da salvare.
-   * @return true se l'inserimento va a buon fine.
-   * @throws DatabaseException in caso di errore.
+   * Gestisce i campi specifici (prezzo, oggetto_richiesto) tramite controlli instanceof.
+   * * @throws DatabaseException se si verifica un errore SQL o di connessione.
    */
   public boolean pubblicaAnnuncio(Annuncio annuncio) throws DatabaseException {
-    String sql = "INSERT INTO annuncio(titolo, descrizione, prezzo, tipoannuncio, idutente, stato) VALUES (?, ?, ?, ?, ?, ?)";
+    if (con == null) {
+      throw new DatabaseException("Connessione al database non disponibile.");
+    }
 
-    try (Connection conn = dbConnection.getInstance().getConnection();
-         PreparedStatement ps = conn.prepareStatement(sql)) {
+    // Query generica che include tutti i possibili campi della tabella
+    String sql = "INSERT INTO annuncio (titolo, descrizione, categoria, utente_id, tipo_annuncio, prezzo, oggetto_richiesto) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
+    try (PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setString(1, annuncio.getTitolo());
       ps.setString(2, annuncio.getDescrizione());
+      ps.setString(3, annuncio.getCategoria().toString());
+      ps.setInt(4, annuncio.getUtenteID());
+      ps.setString(5, annuncio.getTipoAnnuncio().toString());
 
-      if (annuncio.getTipoAnnuncio() == TipoAnnuncio.VENDITA) {
-        ps.setFloat(3, annuncio.getPrezzo());
+      // Gestione PREZZO (Solo per Vendita)
+      if (annuncio instanceof Vendita) {
+        ps.setDouble(6, ((Vendita) annuncio).getPrezzo());
       } else {
-        ps.setNull(3, Types.NUMERIC);
+        ps.setNull(6, java.sql.Types.DOUBLE);
       }
 
-      ps.setString(4, annuncio.getTipoAnnuncio().toString().toLowerCase());
-      ps.setInt(5, annuncio.getUtente().getIdUtente());
-      ps.setBoolean(6, true);
+      // Gestione OGGETTO RICHIESTO (Solo per Scambio)
+      if (annuncio instanceof Scambio) {
+        ps.setString(7, ((Scambio) annuncio).getOggettoRichiesto());
+      } else {
+        ps.setNull(7, java.sql.Types.VARCHAR);
+      }
 
-      int rowsAffected = ps.executeUpdate();
-      return rowsAffected > 0;
+      int rows = ps.executeUpdate();
+      return rows > 0;
+
     } catch (SQLException e) {
-      throw new DatabaseException("Errore durante la pubblicazione dell'annuncio", e);
+      // Lancia l'eccezione personalizzata invece di stampare e ritornare false
+      throw new DatabaseException("Errore durante l'inserimento dell'annuncio: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Recupera tutti gli annunci dal database.
+   * Ricostruisce l'oggetto corretto (Vendita, Scambio o Regalo) in base alla colonna 'tipo_annuncio'.
+   */
+  public List<Annuncio> findAll() {
+    List<Annuncio> annunci = new ArrayList<>();
+    if (con == null) return annunci;
+
+    String sql = "SELECT * FROM annuncio";
+
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery(sql)) {
+
+      while (rs.next()) {
+        Annuncio a = mapResultSetToAnnuncio(rs);
+        if (a != null) {
+          annunci.add(a);
+        }
+      }
+    } catch (SQLException e) {
+      System.err.println("Errore durante il recupero degli annunci: " + e.getMessage());
+      e.printStackTrace();
+    }
+    return annunci;
+  }
+
+  /**
+   * Recupera un singolo annuncio per ID.
+   */
+  public Annuncio findById(int id) {
+    if (con == null) return null;
+
+    String sql = "SELECT * FROM annuncio WHERE id = ?";
+    try (PreparedStatement ps = con.prepareStatement(sql)) {
+      ps.setInt(1, id);
+      try (ResultSet rs = ps.executeQuery()) {
+        if (rs.next()) {
+          return mapResultSetToAnnuncio(rs);
+        }
+      }
+    } catch (SQLException e) {
+      System.err.println("Errore durante la ricerca dell'annuncio per ID: " + e.getMessage());
+      e.printStackTrace();
+    }
+    return null;
+  }
+
+  /**
+   * Metodo helper privato per mappare una riga del ResultSet nell'oggetto Java corretto.
+   */
+  private Annuncio mapResultSetToAnnuncio(ResultSet rs) throws SQLException {
+    int id = rs.getInt("id");
+    String titolo = rs.getString("titolo");
+    String descrizione = rs.getString("descrizione");
+
+    // Gestione Enum Categoria con fallback
+    Categoria categoria;
+    try {
+      categoria = Categoria.valueOf(rs.getString("categoria").toUpperCase());
+    } catch (IllegalArgumentException | NullPointerException e) {
+      categoria = Categoria.ALTRO;
+    }
+
+    int utenteId = rs.getInt("utente_id");
+    String tipoString = rs.getString("tipo_annuncio");
+    TipoAnnuncio tipo;
+    try {
+      tipo = TipoAnnuncio.valueOf(tipoString.toUpperCase());
+    } catch (IllegalArgumentException | NullPointerException e) {
+      tipo = TipoAnnuncio.VENDITA; // Default fallback
+    }
+
+    // Creazione dell'istanza specifica in base al tipo
+    switch (tipo) {
+      case VENDITA:
+        double prezzo = rs.getDouble("prezzo");
+        return new Vendita(id, titolo, descrizione, categoria, utenteId, prezzo);
+
+      case SCAMBIO:
+        String oggettoRichiesto = rs.getString("oggetto_richiesto");
+        return new Scambio(id, titolo, descrizione, categoria, utenteId, oggettoRichiesto);
+
+      case REGALO:
+        return new Regalo(id, titolo, descrizione, categoria, utenteId);
+
+      default:
+        // Fallback di sicurezza
+        return new Vendita(id, titolo, descrizione, categoria, utenteId, 0.0);
     }
   }
 }

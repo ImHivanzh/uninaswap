@@ -3,6 +3,7 @@ package controller;
 import gui.PubblicaAnnuncio;
 import dao.AnnuncioDAO;
 import model.Annuncio;
+import model.enums.Categoria;
 import model.enums.TipoAnnuncio;
 import model.Utente;
 import utils.SessionManager;
@@ -45,7 +46,16 @@ public class PubblicaAnnuncioController {
     String descrizione = view.getDescrizione();
     String prezzoStr = view.getPrezzo();
     TipoAnnuncio tipo = view.getTipo();
-    String categoria = view.getCategoria();
+    String categoriaStr = view.getCategoria();
+    Categoria categoria;
+
+    try {
+      categoria = Categoria.valueOf(categoriaStr.toUpperCase());
+    } catch (IllegalArgumentException ex) {
+      view.mostraErrore("Categoria non valida selezionata.");
+      return;
+    }
+
     List<File> immagini = view.getImmagini();
 
     if (titolo.isEmpty() || descrizione.isEmpty()) {
@@ -64,13 +74,7 @@ public class PubblicaAnnuncioController {
       }
     }
 
-    Annuncio nuovoAnnuncio = new Annuncio();
-    nuovoAnnuncio.setTitolo(titolo);
-    nuovoAnnuncio.setDescrizione(descrizione);
-    nuovoAnnuncio.setPrezzo(prezzo);
-    nuovoAnnuncio.setTipoAnnuncio(tipo);
-    nuovoAnnuncio.setUtente(utenteLoggato);
-    nuovoAnnuncio.setStato(true);
+    Annuncio nuovoAnnuncio = new Annuncio(titolo, descrizione, categoria, utenteLoggato.getIdUtente(), tipo);
 
     try {
       boolean successo = annuncioDAO.pubblicaAnnuncio(nuovoAnnuncio);

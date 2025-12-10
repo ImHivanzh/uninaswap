@@ -1,93 +1,73 @@
 package model;
 
+import model.enums.Categoria;
 import model.enums.TipoAnnuncio;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Annuncio {
-
-    private int idAnnuncio;
+    private int id;
     private String titolo;
     private String descrizione;
-    private boolean stato; // TRUE = disponibile
-    private float prezzo;
+    private Categoria categoria;
+    private int utenteID;
     private TipoAnnuncio tipoAnnuncio;
-    private Utente utente;
+    private List<Immagini> immagini;
 
-
-    //costruttore di default
-    public Annuncio() {}
-
-    //costruttore principale
-    public Annuncio(int idAnnuncio, String titolo, String descrizione, boolean stato, float prezzo, TipoAnnuncio tipoAnnuncio, Utente utente) {
-        this.idAnnuncio = idAnnuncio;
+    // Costruttore completo (es. dal DB)
+    public Annuncio(int id, String titolo, String descrizione, Categoria categoria, int utenteID, TipoAnnuncio tipoAnnuncio) {
+        this.id = id;
         this.titolo = titolo;
         this.descrizione = descrizione;
-        this.stato = stato;
-        this.prezzo = prezzo;
+        this.categoria = categoria;
+        this.utenteID = utenteID;
         this.tipoAnnuncio = tipoAnnuncio;
-        this.utente = utente;
+        this.immagini = new ArrayList<>();
     }
 
-    //metodi getter e setter
-    // idAnnuncio
-    public int getIdAnnuncio() {
-        return idAnnuncio;
-    }
-
-    public void setIdAnnuncio(int idAnnuncio) {
-        this.idAnnuncio = idAnnuncio;
-    }
-
-    // titolo
-    public String getTitolo() {
-        return titolo;
-    }
-
-    public void setTitolo(String titolo) {
+    // Costruttore per nuovi inserimenti (senza ID)
+    public Annuncio(String titolo, String descrizione, Categoria categoria, int utenteID, TipoAnnuncio tipoAnnuncio) {
         this.titolo = titolo;
-    }
-
-    // descrizione
-    public String getDescrizione() {
-        return descrizione;
-    }
-
-    public void setDescrizione(String descrizione) {
         this.descrizione = descrizione;
-    }
-
-    // stato
-    public boolean isStato() {
-        return stato;
-    }
-
-    public void setStato(boolean stato) {
-        this.stato = stato;
-    }
-
-    // prezzo
-    public float getPrezzo() {
-        return prezzo;
-    }
-
-    public void setPrezzo(float prezzo) {
-        this.prezzo = prezzo;
-    }
-
-    // tipoAnnuncio
-    public TipoAnnuncio getTipoAnnuncio() {
-        return tipoAnnuncio;
-    }
-
-    public void setTipoAnnuncio(TipoAnnuncio tipoAnnuncio) {
+        this.categoria = categoria;
+        this.utenteID = utenteID;
         this.tipoAnnuncio = tipoAnnuncio;
+        this.immagini = new ArrayList<>();
     }
 
-    // idUtente
-    public Utente getUtente() {
-        return utente;
+    // Getters e Setters
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+
+    public String getTitolo() { return titolo; }
+    public void setTitolo(String titolo) { this.titolo = titolo; }
+
+    public String getDescrizione() { return descrizione; }
+    public void setDescrizione(String descrizione) { this.descrizione = descrizione; }
+
+    public Categoria getCategoria() { return categoria; }
+    public void setCategoria(Categoria categoria) { this.categoria = categoria; }
+
+    public int getUtenteID() { return utenteID; }
+    public void setUtenteID(int utenteID) { this.utenteID = utenteID; }
+
+    public TipoAnnuncio getTipoAnnuncio() { return tipoAnnuncio; }
+    public void setTipoAnnuncio(TipoAnnuncio tipoAnnuncio) { this.tipoAnnuncio = tipoAnnuncio; }
+
+    public List<Immagini> getImmagini() { return immagini; }
+    public void setImmagini(List<Immagini> immagini) { this.immagini = immagini; }
+
+    public void addImmagine(Immagini immagine) {
+        if (this.immagini == null) this.immagini = new ArrayList<>();
+        this.immagini.add(immagine);
     }
 
-    public void setUtente(Utente utente) {
-        this.utente = utente;
+    @Override
+    public String toString() {
+        return "Annuncio{" +
+                "id=" + id +
+                ", titolo='" + titolo + '\'' +
+                ", tipo=" + tipoAnnuncio +
+                '}';
     }
 }
