@@ -33,10 +33,10 @@ public class App {
 
                 Utente a = new Utente(7, "utente2", "pass2", "!", "!");
 
-                Profilo profilo = new Profilo();
-                new ProfiloController(profilo, a);
+                //Profilo profilo = new Profilo();
+                //new ProfiloController(profilo, a);
 
-                profilo.setVisible(true);
+                //profilo.setVisible(true);
             }
         });
     }
