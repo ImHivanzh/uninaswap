@@ -3,6 +3,8 @@ package controller;
 import dao.AnnuncioDAO;
 import gui.PubblicaAnnuncio;
 import model.Annuncio;
+import model.enums.Categoria;
+import model.enums.TipoAnnuncio;
 import model.Utente;
 import model.Vendita;
 import model.enums.Categoria;
@@ -35,6 +37,18 @@ public class PubblicaAnnuncioController {
     Categoria categoria = view.getCategoriaSelezionata();
     TipoAnnuncio tipo = view.getTipoSelezionato();
     String prezzoStr = view.getPrezzo();
+    TipoAnnuncio tipo = view.getTipo();
+    String categoriaStr = view.getCategoria();
+    Categoria categoria;
+
+    try {
+      categoria = Categoria.valueOf(categoriaStr.toUpperCase());
+    } catch (IllegalArgumentException ex) {
+      view.mostraErrore("Categoria non valida selezionata.");
+      return;
+    }
+
+    List<File> immagini = view.getImmagini();
 
     // 2. Validazione base
     if (titolo.isEmpty() || descrizione.isEmpty() || categoria == null || tipo == null) {
@@ -70,13 +84,7 @@ public class PubblicaAnnuncioController {
         nuovoAnnuncio = new Annuncio();
       }
 
-      // 4. Setto i campi comuni (definiti nella classe padre Annuncio)
-      nuovoAnnuncio.setIdUtente(utente.getIdUtente());
-      nuovoAnnuncio.setTitolo(titolo);
-      nuovoAnnuncio.setDescrizione(descrizione);
-      nuovoAnnuncio.setCategoria(categoria);
-      nuovoAnnuncio.setTipoAnnuncio(tipo);
-      nuovoAnnuncio.setStato(true);
+    Annuncio nuovoAnnuncio = new Annuncio(titolo, descrizione, categoria, utenteLoggato.getIdUtente(), tipo);
 
       // 5. Salvataggio nel DB
       boolean successo = annuncioDAO.pubblicaAnnuncio(nuovoAnnuncio);
